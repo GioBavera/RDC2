@@ -2,7 +2,7 @@
 #define SERVERDTP_H
 
 #include <stdbool.h>
-bool check_credentials(char *, char *);
 
+bool check_credentials(char *, char *);
 
 #endif // SERVERDTP_H

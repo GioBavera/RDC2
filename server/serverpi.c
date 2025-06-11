@@ -1,22 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>
+
 #include "serverpi.h"
 #include "serverausftp.h"
 
-// LIBRERIAS DE SOCKET
-#include <netinet/in.h>
-#include <sys/socket.h>
 
-// DEFINICIONES
-#define MSG_220 "220 srvFtp version 1.0\r\n"
-#define MSG_331 "331 Password required for %s\r\n"
-#define MSG_230 "230 User %s logged in\r\n"
-#define MSG_530 "530 Login incorrect\r\n"
-#define MSG_221 "221 Goodbye\r\n"
-#define MSG_550 "550 %s: no such file or directory\r\n"
-#define MSG_299 "299 File %s size %ld bytes\r\n"
-#define MSG_226 "226 Transfer complete\r\n"
+
+int is_valid_command(const char *command) {
+    int i = 0;
+
+    while (valid_commands[i] != NULL) {
+        if (strcmp(command, valid_commands[i]) == 0) {
+            return arg_commands[i];
+        }
+        i++;
+    }
+    return -1; // Comando no valido
+}
 
 /*
     * Este codigo recepciona un comando (recive) desde el socket descriptor sd. 
@@ -26,28 +28,39 @@
 int recv_cmd(int sd, char *operation, char *param) {    // sd = socket descriptor, es local.
     char buffer[BUFSIZE];
     char *token;
+    int argsNumber;
 
     if (recv(sd, buffer, BUFSIZE, 0) < 0) {
-        fprintf(stderr, "Error receiving data\n");
+        fprintf(stderr, "Error: no se pudo recibir el \n");
         return 1;
     }
 
     buffer[strcspn(buffer, "\r\n")] = 0;
     token = strtok(buffer, " ");
     // strtok tiene un comportamiento inicial pero en adelante actua de forma distinta.
-
-    if (token == NULL || strlen(token) < 4) {
-        fprintf(stderr, "Comando FTP no valido\n");
+    if (token == NULL || strlen(token) < 3 || (argsNumber == is_valid_command(token)) < 0) {
+        fprintf(stderr, "Error: comando no valido\n");
         return 1;
-    } else {
-        strcpy(operation, token);
-        token = strtok(NULL, " ");
-        // Aca le indica que siga trabajando con el mismo buffer. Si le paso uno nuevo, da otro token.
-        // Utiliza static internamente para saber como actua.
-        #if DEBUG 
-        printf("par %s\n", token);  // cuando copilas y pones -D DEBUG, se copila con lo uqe esta entre #if
-        #endif
-        if (token != NULL) strcpy(param, token);
+    } 
+
+    strcpy(operation, token);
+
+    if(!argsNumber){
+        return 0;  // Si no hay argumentos, termina la funcion.
     }
+    token = strtok(NULL, " ");
+    // Aca le indica que siga trabajando con el mismo buffer. Si le paso uno nuevo, da otro token.
+    // Utiliza static internamente para saber como actua.
+    #if DEBUG 
+    printf("par %s\n", token);  // cuando copilas y pones -D DEBUG, se copila con lo uqe esta entre #if
+    #endif
+
+    if (token != NULL) {
+        strcpy(param, token);
+    }else{
+        fprintf(stderr, "Error: se esperaba un argumento para el comando %s. \n", operation);
+        return 1;
+    }
+    return 0;  // Si todo sale bien, retorna 0.
 }
 
