@@ -6,34 +6,37 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#include "serverdtp.h"
-#include "serverausftp.h"
-#include "serverpi.h"
-
-#define PTODEFAULT 21
+#include "server.h"
+#include "config.h"
+#include "arguments.h"
 
 int main(int argc, char const *argv[]){
-    
-    int port;
 
-    if (argc > 2){
-        fprintf(stderr, "Error: mal ingreso de argumentos\n");
-        return 1;
+    struct arguments args;
+
+    if(parse_arguments(argc, argv, &args) != 0){
+        return EXIT_FAILURE;
     }
 
-    if (argc = 2){
-        port = atoi(argv[1]);
-    }else{
-        port = PTODEFAULT; // Puerto default para FTP
+    printf("Start server on %s:%d\n", args.address, args.port);
+
+    int masterSocket = serverInit(args.address, args.port);
+    if (masterSocker < 0){
+        return EXIT_FAILURE;
     }
 
-    if(port == 0){
-        fprintf(stderr, "Error: puerto invalido\n");
-        return 1;
+    //setup_signals();
+
+    while(1){
+        int slaveSocket = serverAccept(masterSocker);
+        if (slaveSocket < 0){
+            continue;
+        }
+
+        serverLoop(slaveSocket);
+
     }
-
-    printf("%d\n", port);
-
+/*
     int masterSocker, slaveSocket;
     struct sockaddr_in masterAddr, slaveAddr;
     socklen_t slaveAddrLen;
@@ -138,8 +141,5 @@ int main(int argc, char const *argv[]){
             // Por ahora solo se maneja el comando QUIT
         }
     }
-
-    close(masterSocker);
-
-    return 0;
+*/
 }
