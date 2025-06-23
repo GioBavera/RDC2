@@ -21,6 +21,8 @@ void session_init(int control_fd) {
   sess.control_sock = control_fd;
   sess.data_sock = -1;
   sess.logged_in = 0;
+  sess.transfer_type = 'I'; // Por defecto, binario
+
   memset(sess.current_user, 0, sizeof(sess.current_user));
   memset(&sess.data_addr, 0, sizeof(sess.data_addr));
 

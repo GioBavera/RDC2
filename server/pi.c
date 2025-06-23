@@ -55,6 +55,7 @@ int get_exe_command(ftp_session_t *sess) {
 
   buffer[len] = '\0';
 
+  printf("DEBUG: Received raw command: '%s'\n", buffer);
   // Strip CRLF
   char *cr = strchr(buffer, '\r');
   if (cr) *cr = '\0';
@@ -65,6 +66,8 @@ int get_exe_command(ftp_session_t *sess) {
   char *arg = NULL;
   char *cmd = buffer;
 
+  printf("DEBUG: Received command: '%s' with args: '%s'\n", cmd, arg ? arg : "(null)");
+
   // Si el comando es nulo, retorna un error
   if (cmd[0] == '\0') {
     safe_dprintf(sess->control_sock, "500 Empty command.\r\n");
@@ -72,6 +75,7 @@ int get_exe_command(ftp_session_t *sess) {
   }
 
   // Si hay un espacio, separa el comando del argumento
+  // Primero separar cmd y arg
   char *space = strchr(buffer, ' ');
   if (space) {
     *space = '\0';
@@ -81,9 +85,12 @@ int get_exe_command(ftp_session_t *sess) {
 
   printf("DEBUG: Received command: '%s' with args: '%s'\n", cmd, arg ? arg : "(null)");
 
+
+
   // Busca el comando en la lista de comandos válidos
   ftp_command_t *entry = ftp_commands;
   while (entry->name) {       // Recoorre la lista de comandos
+    
     if (strcasecmp(entry->name, cmd) == 0) {    // Si lo encuentra, llama al handler
       entry->handler(arg ? arg : "");
       return (sess->control_sock < 0) ? -1 : 0;

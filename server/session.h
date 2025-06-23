@@ -9,6 +9,7 @@ typedef struct {
   struct sockaddr_in data_addr;    // For PORT command
   char current_user[USERNAME_MAX]; // Session username
   uint8_t logged_in;               // 0 = false, 1 = true
+  char transfer_type; // 'A' = ASCII, 'I' = binary (default is 'I')
 } ftp_session_t;
 
 // Global pointer to current session (set by each child process)
