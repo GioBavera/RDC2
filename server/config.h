@@ -12,9 +12,10 @@
 #define FTP_PORT PORT_DEFAULT
 #define LOCALHOST "127.0.0.1"
 #define BUFSIZE 512
+#define USERNAME_MAX 64
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
-#define PORT_DOC "Port number (default:" STR(PORT_DEFAULT) ")"
+#define PORT_DOC "Port number (default:" STR(FTP_PORT) ")"
 #define ADDR_DOC "Local IP address (default: " LOCALHOST ")"

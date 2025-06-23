@@ -1,8 +1,6 @@
-#ifndef SERVERDTP_H
-#define SERVERDTP_H
+#pragma once
 
 #include <stdbool.h>
+#define PWDFILE "/etc/ausftp/ftpusers"
 
-bool check_credentials(char *, char *);
-
-#endif // SERVERDTP_H
+int check_credentials(char *user, char *pass);

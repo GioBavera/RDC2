@@ -1,11 +1,11 @@
-#ifndef SERVERAUS_H
-#define SERVERAUS_H
+#pragma once 
 
-#include "serverdtp.h"
 #include <netinet/in.h>
-#include <sys/socket.h>
+
+extern int serverSocket;
+
+int serverInit(const char *ip, int port);
+int serverAccept(int listen_fd, struct sockaddr_in *client_addr);
+void serverLoop(int slaveSocket);
 
 #define BUFSIZE 512
-
-
-#endif
