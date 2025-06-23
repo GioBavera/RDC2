@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "arguments.h": "c",
-        "server.h": "c",
-        "dtp.h": "c",
-        "string.h": "c",
-        "utils.h": "c"
-    }
-}

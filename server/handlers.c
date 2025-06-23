@@ -93,45 +93,182 @@ void handle_TYPE(const char *args) {
 
 // Cambia la la dirección y puerto de datos para la conexión activa.
 void handle_PORT(const char *args) {
-    ftp_session_t *sess = session_get();
+  ftp_session_t *sess = session_get();
+  (void)args;
+  (void)sess;
 
-    // Error de escritura
-    if (!args || strlen(args) == 0) {
-        safe_dprintf(sess->control_sock, MSG_501);  // Syntax error
-        return;
-    }
+  if (!args || strlen(args) == 0) {
+    safe_dprintf(sess->control_sock, MSG_501);
+    return;
+  }
 
-    // Se espera un formato de 6 números separados por comas: h1,h2,h3,h4,p1,p2
-    // No se agregaron todos los argumentos.
-    unsigned int h1, h2, h3, h4, p1, p2;
-    if (sscanf(args, "%u,%u,%u,%u,%u,%u", &h1, &h2, &h3, &h4, &p1, &p2) != 6) {
-        safe_dprintf(sess->control_sock, MSG_501);  
-        return;
-    }
+  int h1, h2, h3, h4, p1, p2;
+  if (sscanf(args, "%d,%d,%d,%d,%d,%d", &h1, &h2, &h3, &h4, &p1, &p2) != 6) {
+    safe_dprintf(sess->control_sock, MSG_501);
+    return;
+  }
 
-    if (h1 > 255 || h2 > 255 || h3 > 255 || h4 > 255 || p1 > 255 || p2 > 255) {
-        safe_dprintf(sess->control_sock, MSG_501);  // Syntax error
-        return;
-    }
+  // Limpiar y configurar dirección IP y puerto para la conexión de datos
+  memset(&sess->data_addr, 0, sizeof(sess->data_addr));
+  sess->data_addr.sin_family = AF_INET;
+  sess->data_addr.sin_port = htons(p1 * 256 + p2);
 
-    memset(&sess->data_addr, 0, sizeof(sess->data_addr));
-    sess->data_addr.sin_family = AF_INET;
-    sess->data_addr.sin_addr.s_addr = htonl((h1 << 24) | (h2 << 16) | (h3 << 8) | h4);
-    sess->data_addr.sin_port = htons((p1 << 8) | p2);
+  char ip_str[INET_ADDRSTRLEN];
+  snprintf(ip_str, sizeof(ip_str), "%d.%d.%d.%d", h1, h2, h3, h4);
+  if (inet_pton(AF_INET, ip_str, &sess->data_addr.sin_addr) <= 0) {
+    safe_dprintf(sess->control_sock, MSG_501);
+    return;
+  }
 
-    safe_dprintf(sess->control_sock, MSG_200);  // OK
+  safe_dprintf(sess->control_sock, MSG_200);
 }
 
 // Maneja el comando RETR (retrieve) para descargar un archivo.
 void handle_RETR(const char *args) {
   ftp_session_t *sess = session_get();
-  (void)args; // unused
+
+  if (!sess->logged_in) {   // Session no iniciada
+    safe_dprintf(sess->control_sock, MSG_530);
+    return;
+  }
+
+  if (!args || strlen(args) == 0) { // Argumento vacío
+    safe_dprintf(sess->control_sock, MSG_501);
+    return;
+  }
+
+  // Abrir conexión de datos
+  safe_dprintf(sess->control_sock, MSG_150); 
+
+  // Intentar abrir el archivo para lectura
+  FILE *fp = fopen(args, "rb");
+  if (!fp) {
+    perror("fopen");
+    safe_dprintf(sess->control_sock, MSG_550, "No se pudo abrir el archivo");
+    return;
+  }
+
+  int data_sock = socket(AF_INET, SOCK_STREAM, 0);
+  // Verificar si se creó el socket de datos correctamente
+  if (data_sock < 0) {
+    perror("socket");
+    fclose(fp);
+    safe_dprintf(sess->control_sock, "No se pudo crear el socket de datos");
+    return;
+  }
+
+  // Intentar conectar al socket de datos
+  if (connect(data_sock, (struct sockaddr *)&sess->data_addr, sizeof(sess->data_addr)) < 0) {
+    perror("connect");
+    close(data_sock);
+    fclose(fp);
+    safe_dprintf(sess->control_sock, "No se pudo conectar el socket de datos");
+    return;
+  }
+
+  char buffer[1024];
+  size_t bytes_read;
+  ssize_t bytes_written;
+  int error = 0;
+
+  while ((bytes_read = fread(buffer, 1, sizeof(buffer), fp)) > 0) {
+    bytes_written = write(data_sock, buffer, bytes_read);
+    if (bytes_written < 0) {
+      perror("write");
+      error = 1;
+      break;
+    } else if ((size_t)bytes_written != bytes_read) {
+      fprintf(stderr, "Error: no se escribieron todos los bytes\n");
+      error = 1;
+      break;
+    }
+  }
+
+  if (ferror(fp)) {
+    fprintf(stderr, "Error al leer el archivo\n");
+    error = 1;
+  }
+
+  close(data_sock);
+  fclose(fp);
+
+  if (!error) {
+    safe_dprintf(sess->control_sock, MSG_226); 
+  } else {
+    safe_dprintf(sess->control_sock, "Error durante la transferencia");
+  }
 }
 
 // Maneja el comando STOR (store) para subir un archivo.
 void handle_STOR(const char *args) {
   ftp_session_t *sess = session_get();
-  (void)args; // unused
+
+
+  if (!sess->logged_in) {
+    safe_dprintf(sess->control_sock, MSG_530);
+    return;
+  }
+
+  if (!args || strlen(args) == 0) {
+    safe_dprintf(sess->control_sock, MSG_501);
+    return;
+  }
+
+  safe_dprintf(sess->control_sock, MSG_150); 
+
+  FILE *fp = fopen(args, "wb");
+  if (!fp) {
+    perror("fopen");
+    safe_dprintf(sess->control_sock, "No se pudo abrir el archivo para escritura");
+    return;
+  }
+
+  int data_sock = socket(AF_INET, SOCK_STREAM, 0);
+  if (data_sock < 0) {
+    perror("socket");
+    fclose(fp);
+    safe_dprintf(sess->control_sock, "No se pudo crear el socket de datos");
+    return;
+  }
+
+  if (connect(data_sock, (struct sockaddr *)&sess->data_addr, sizeof(sess->data_addr)) < 0) {
+    perror("connect");
+    close(data_sock);
+    fclose(fp);
+    safe_dprintf(sess->control_sock, "No se pudo conectar el socket de datos");
+    return;
+  }
+
+  char buffer[1024];
+  ssize_t bytes;
+  int error = 0;
+
+  while ((bytes = read(data_sock, buffer, sizeof(buffer))) > 0) {
+    if (fwrite(buffer, 1, bytes, fp) != (size_t)bytes) {
+      perror("fwrite");
+      error = 1;
+      break;
+    }
+  }
+
+  if (bytes < 0) {
+    perror("read");
+    error = 1;
+  }
+
+  if (ferror(fp)) {
+    fprintf(stderr, "Error en el archivo luego del cierre.\n");
+    error = 1;
+  }
+
+  fclose(fp);
+  close(data_sock);
+
+  if (!error) {
+    safe_dprintf(sess->control_sock, MSG_226);
+  } else {
+    safe_dprintf(sess->control_sock, "No se pudo guardar el archivo");
+  }
 }
 
 // Maneja el comando NOOP (no operation) que no realiza ninguna acción.

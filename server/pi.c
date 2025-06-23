@@ -55,7 +55,8 @@ int get_exe_command(ftp_session_t *sess) {
 
   buffer[len] = '\0';
 
-  printf("DEBUG: Received raw command: '%s'\n", buffer);
+  // printf("DEBUG: Received raw command: '%s'\n", buffer);
+
   // Strip CRLF
   char *cr = strchr(buffer, '\r');
   if (cr) *cr = '\0';
@@ -66,11 +67,11 @@ int get_exe_command(ftp_session_t *sess) {
   char *arg = NULL;
   char *cmd = buffer;
 
-  printf("DEBUG: Received command: '%s' with args: '%s'\n", cmd, arg ? arg : "(null)");
+  // printf("DEBUG: Received command: '%s' with args: '%s'\n", cmd, arg ? arg : "(null)");
 
   // Si el comando es nulo, retorna un error
   if (cmd[0] == '\0') {
-    safe_dprintf(sess->control_sock, "500 Empty command.\r\n");
+    safe_dprintf(sess->control_sock, MSG_505);
     return 0;
   }
 
@@ -83,9 +84,7 @@ int get_exe_command(ftp_session_t *sess) {
     while (*arg == ' ') arg++;
   }
 
-  printf("DEBUG: Received command: '%s' with args: '%s'\n", cmd, arg ? arg : "(null)");
-
-
+  //printf("DEBUG: Received command: '%s' with args: '%s'\n", cmd, arg ? arg : "(null)");
 
   // Busca el comando en la lista de comandos válidos
   ftp_command_t *entry = ftp_commands;
@@ -99,6 +98,6 @@ int get_exe_command(ftp_session_t *sess) {
   }
 
   // Si no se encuentra el comando, envía un mensaje de error de que no está implementado el comando dado.
-  safe_dprintf(sess->control_sock, "502 Command not implemented.\r\n");
+  safe_dprintf(sess->control_sock, MSG_502);
   return 0;
 }

@@ -5,7 +5,7 @@
 #define APP_NAME "miniftp"
 #define VERSION "1.0"
 #define OS_NAME "Linux"
-#define BANNER APP_NAME" version"VERSION" Ready"
+#define BANNER APP_NAME" version "VERSION" Ready"
 #define BUG_EMAIL "giovani.bavera@gmail.com"
 
 #define PORT_DEFAULT 21
