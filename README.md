@@ -1,12 +1,13 @@
 # RDC2
 
-Proyecto de Redes de las Computadora II. Consiste en hacer un socket FTP basico con soporte para los comandos `USER`, `PASS`, `QUIT`, `SYST`, `TYPE`, `PORT`, `RETR`, `STOR`, `NOOP`.
+Proyecto de Redes de las Computadora II. Consiste en hacer un socket FTP basico con soporte para los comandos `USER`, `PASS`, `QUIT`, `SYST`, `TYPE`, `PORT`, `RETR`, `STOR`, `NOOP`. Posee un modo concurrente y otro iterativo, cada uno en su correspondiente carpeta.
 
 ## Codigo original
 
 Este proyecto se basa en el esqueleto de [miniftp](https://github.com/pubdigital/miniftp) de pubdigital. Se hicieron algunas leves modificaciones a lo largo del codigo y se agregaron algunas funciones dentro de handlers.c
 
 ## Explicacion de comandos
+A continucacion, se da una brave descripcion de cada comando. Para usar gran parte de los comandos, que no son definidos nativamente, se debe utilizar previo al comando la anotacion `QUOTE`.
 
 - **USER _user_**  
   Comando para enviar el nombre de usuario al servidor FTP. Es el primer paso del proceso de autenticación.
@@ -38,8 +39,7 @@ Este proyecto se basa en el esqueleto de [miniftp](https://github.com/pubdigital
   No realiza ninguna acción, simplemente verifica que la conexión con el servidor sigue activa (mantiene la sesión abierta).
 
 ## Instruccions Copilacion
-
-Each version has its own `Makefile`. To compile the current version:
+En cada version, iterativa o concurrente, tiene su propio archivo `Makefile`. Para copilarlo se debe ingresar: 
 
 ```bash
 cd iterative
@@ -47,14 +47,18 @@ make
 make clean
 ```
 
-## Testing
+Y su ejecucion:
+```bash
+./miniftp
+```
 
-You can test with any FTP client, e.g.:
+## Testing
+Puede testease desde cualquier FTP, con:
 
 ```bash
 ftp localhost 2121
 ```
-Or using netcat:
+O usando netcat:
 
 ```bash
 nc localhost 2121
